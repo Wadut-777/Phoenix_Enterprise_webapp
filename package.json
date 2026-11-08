@@ -1,0 +1,13 @@
+{
+  "name": "phoenix-enterprise",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Phoenix Enterprise corporate website and CMS (MERN)",
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "dev:api": "npm run dev -w backend",
+    "dev:web": "npm run dev -w frontend",
+    "seed": "npm run seed -w backend",
+    "build": "npm run build -w frontend"
+  }
+}
