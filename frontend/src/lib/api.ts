@@ -80,7 +80,7 @@ export type Settings = {
 };
 
 export const useSite = () => useGet<{ settings: Settings; menus: Record<string, MenuItem[]> }>(['site'], '/site');
-export const usePage = (slug: string) => useGet<Page>(['page', slug], `/pages/${slug}`);
+export const usePage = (slug: string, enabled = true) => useGet<Page>(['page', slug], `/pages/${slug}`, enabled);
 export const useServices = () => useGet<{ items: Service[] }>(['services'], '/services');
 export const useService = (slug: string) =>
   useGet<{ service: Service; related: Service[]; projects: Project[] }>(['service', slug], `/services/${slug}`);

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { ROLES } from '../lib/rbac.js';
 
 const { Schema, model, models } = mongoose;
 const Mixed = Schema.Types.Mixed;
@@ -37,6 +38,8 @@ export const Page = def(
       template: { type: String, default: 'default' },
       // Block based layout. Each block: { id, type, props, style }
       blocks: { type: [Mixed], default: [] },
+      // Unpublished working copy: { blocks, title, seo }. Never exposed by the public API.
+      draft: { type: Mixed, default: null },
       seo,
       showInNav: { type: Boolean, default: false },
       ...publishFields,
@@ -288,4 +291,84 @@ export const Menu = def(
     },
     { timestamps: true },
   ),
+);
+
+const hideSecrets = {
+  transform: (_doc, ret) => {
+    delete ret.passwordHash;
+    delete ret.sessions;
+    return ret;
+  },
+};
+
+export const User = def(
+  'User',
+  new Schema(
+    {
+      name: { type: String, required: true, trim: true, maxlength: 120 },
+      email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+      passwordHash: { type: String, required: true, select: false },
+      role: { type: String, enum: ROLES, default: 'content_editor', index: true },
+      active: { type: Boolean, default: true },
+      failedAttempts: { type: Number, default: 0 },
+      lockUntil: Date,
+      lastLoginAt: Date,
+      // Hashed refresh-token ids, one per signed-in device.
+      sessions: { type: [{ jti: String, expiresAt: Date, _id: false }], select: false, default: [] },
+    },
+    { timestamps: true, toJSON: hideSecrets, toObject: hideSecrets },
+  ),
+);
+
+export const ContentRevision = def(
+  'ContentRevision',
+  new Schema(
+    {
+      resource: { type: String, required: true },
+      docId: { type: Schema.Types.ObjectId, required: true },
+      label: String,
+      snapshot: Mixed,
+      author: { id: Schema.Types.ObjectId, name: String },
+    },
+    { timestamps: { createdAt: true, updatedAt: false } },
+  ).index({ resource: 1, docId: 1, createdAt: -1 }),
+);
+
+export const ActivityLog = def(
+  'ActivityLog',
+  new Schema(
+    {
+      user: Schema.Types.ObjectId,
+      userName: String,
+      userEmail: String,
+      action: { type: String, index: true },
+      resource: String,
+      docId: String,
+      summary: String,
+      ip: String,
+    },
+    { timestamps: { createdAt: true, updatedAt: false } },
+  ).index({ createdAt: -1 }),
+);
+
+export const Media = def(
+  'Media',
+  new Schema(
+    {
+      originalName: String,
+      kind: { type: String, enum: ['image', 'video'], index: true },
+      mimeType: String,
+      size: Number,
+      width: Number,
+      height: Number,
+      url: { type: String, required: true },
+      variants: [{ width: Number, url: String, _id: false }],
+      dir: String,
+      alt: { type: String, default: '' },
+      category: { type: String, default: 'General', index: true },
+      tags: [String],
+      uploadedBy: Schema.Types.ObjectId,
+    },
+    { timestamps: true },
+  ).index({ createdAt: -1 }),
 );

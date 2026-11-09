@@ -26,3 +26,9 @@
   .field { @apply w-full border border-stone bg-white px-4 py-3 text-sm text-ink placeholder:text-concrete focus:border-ember focus:outline-none; }
   .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-graphite; }
 }
+
+/* Visual editor */
+.edit-text { cursor: text; outline: none; }
+.edit-text:hover { outline: 1px dashed rgba(212, 80, 26, 0.7); outline-offset: 2px; }
+.edit-text:focus { outline: 2px solid #d4501a; outline-offset: 2px; }
+.edit-text:empty::before { content: attr(data-ph); opacity: 0.45; }

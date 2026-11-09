@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useSite, type MenuItem, type Settings } from '../lib/api';
 import { SmartLink } from './ui';
+import { AdminPill } from './AdminPill';
 
 function Brand({ settings, light = true }: { settings?: Settings; light?: boolean }) {
   const name = settings?.company?.name || 'Phoenix Enterprise';
@@ -172,6 +173,7 @@ export default function Layout() {
         {isLoading ? <div className="container-site py-32"><div className="h-1 w-24 animate-pulse bg-ember" /></div> : <Outlet />}
       </main>
       <Footer settings={settings} items={data?.menus?.footer ?? []} />
+      <AdminPill />
       {wa && (
         <a
           href={`https://wa.me/${wa}`}

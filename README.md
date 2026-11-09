@@ -1,28 +1,58 @@
-# Phoenix Enterprise: website and CMS (Phase 1: public website)
+# Phoenix Enterprise: website and CMS
 
 MERN stack: React + Vite + TypeScript + Tailwind, Express, MongoDB (Mongoose).
 
-## What is in this phase
+## What is in this repo
 
-- Public website, fully driven by MongoDB content (nothing is hardcoded in components):
-  home, about, services (+ detail), projects (grid/masonry, category filter, search, status, detail with gallery
-  and before/after), industries (+ detail), careers (+ apply with resume upload), contact, news, insights, FAQs,
-  privacy, terms, custom 404.
-- Pages are stored as **block layouts** (`pages.blocks`), the same format the Phase 2 page builder and visual editor
-  will edit. Supported blocks: hero, intro, richText, textImage, serviceGrid, projectGallery, featureList,
-  industries, process, stats, clients, testimonials, people, faq, video, cta, contactForm.
-- Read API, enquiry and career-application endpoints, sitemap.xml, robots.txt, health check.
-- Security: helmet, rate limiting, zod validation, Mongo-operator stripping, honeypot spam trap, resume upload
-  restricted to PDF/DOC/DOCX up to 5 MB and stored outside any publicly served directory.
-- SEO: per-page title/description/Open Graph/Twitter/canonical, JSON-LD (site-wide business schema, articles),
-  breadcrumbs, lazy images.
-- Docker Compose (mongo, backend, frontend, nginx, certbot), Let's Encrypt bootstrap, backup/restore scripts.
+**Phase 1: public website.** Home, about, services, projects (grid/masonry, filters, search, detail with gallery and
+before/after), industries, careers with resume upload, contact, news, insights, FAQs, legal pages, 404, sitemap.xml,
+robots.txt, per-page SEO and JSON-LD. All content comes from MongoDB.
 
-## Not built yet (Phase 2+)
+**Phase 2: CMS.**
+- **Admin area at `/admin`:** overview dashboard, pages, navigation menus, header/footer/contact settings, SEO overview,
+  services, projects and categories, industries, news and insights, testimonials, client logos, FAQs, media library,
+  enquiries (with CSV export), job openings, career applications (resume download), users and roles, activity log.
+- **Visual editor ("Edit Website"):** sign in, open any CMS page and press the orange *Edit Website* button (bottom left).
+  Click text to edit it in place; use the block toolbar (drag handle, up/down, duplicate, delete); *Add block* bars appear
+  between blocks; the side panel edits images, videos, links, lists, colours, spacing and alignment. Undo/redo, autosaved
+  drafts, Preview mode with desktop/tablet/mobile widths, Publish (or schedule) and Normal view.
+- **Blocks:** hero, company intro, text, text + image, two columns, full-width image, service grid, project gallery, feature
+  list, industries, process, statistics, client logos, testimonials, leadership, FAQ, video, CTA banner, contact form,
+  custom HTML (administrators only).
+- **Draft / publish / revisions:** page edits are saved to a draft that visitors never see. Publishing stores the previous live
+  version in Version history; restoring a page version puts it back into the draft for review. Services, projects, posts,
+  industries and menus keep a version on every edit.
+- **Media:** drag-and-drop upload, search, categories, alt text. Images are checked by their real file type, auto-rotated,
+  stripped of EXIF, and converted to responsive WebP (480/960/1600 px) when `sharp` is available.
 
-Admin login/JWT/RBAC, dashboard and all admin modules, visual "Edit Website" editor and drag-and-drop builder,
-media library with WebP/AVIF resizing, revisions, activity logs, SSR/pre-rendering. Until the admin exists, content
-is edited by changing `backend/src/seed/data.js` and re-seeding, or directly in MongoDB.
+### Roles
+
+| Role | Access |
+|---|---|
+| Super Administrator | everything, including users |
+| Administrator | pages, content, media, projects, enquiries, applications, settings, menus, logs (not users) |
+| Content Editor | pages, content, SEO, media |
+| Project Manager | projects, categories, media |
+| Enquiry Manager | enquiries, job openings, applications |
+
+### Security model
+
+bcrypt (cost 12) passwords; 15-minute access JWT and 7-day rotating refresh token in HTTP-only cookies (refresh cookie
+limited to `/api/auth`); refresh-token reuse revokes every session; double-submit CSRF token on all state-changing admin
+requests; account lock after 5 failed sign-ins for 15 minutes plus per-IP rate limits; role checks on every endpoint;
+Mongo-operator stripping and `javascript:`/`data:` URL rejection on all saved content; uploads validated by magic bytes
+(SVG is not accepted); resumes are never served publicly; custom HTML blocks need an Administrator; every admin action is
+written to the activity log. In production the server refuses to start without 32+ character JWT secrets.
+
+## Not built / known limits
+
+- Nested rows and columns inside blocks (blocks are a flat, reorderable list; "Two columns" covers the common case).
+- Page content for services, projects, posts etc. is edited in their admin forms, not in the visual editor.
+- No server-side rendering: titles and meta tags are set in the browser. Add pre-rendering before relying on search traffic.
+- Scheduled publication applies when a page is not yet live; changes to a live page publish immediately.
+- Backups are the shell scripts below, not a button in the admin.
+- Phase 2 was written without being able to install packages or run MongoDB here, so it has been syntax-checked and its
+  pure logic unit-tested but not run end to end. Expect to fix small integration issues on first run.
 
 ## Content notes
 
@@ -31,6 +61,18 @@ contact details or photos are included. Everything seeded is neutral starter cop
 no client names, certifications, years of experience or project figures were invented. Sample projects are flagged
 `isPlaceholder` and labelled on the site. The three statistics (10 service lines, 7 project categories,
 6 industries) are counts taken from the brief. Empty contact fields are hidden until real values are entered.
+
+## First sign-in
+
+Create the first Super Administrator (any time, safe to re-run to reset a password):
+
+```bash
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-long-password-1' ADMIN_NAME='Your Name' npm run create-admin -w backend
+# on the server:
+docker compose run --rm -e ADMIN_EMAIL=you@example.com -e ADMIN_PASSWORD='a-long-password-1' backend node src/scripts/create-admin.js
+```
+
+Then open `/admin/login`. Production cookies are `Secure`, so the site must be served over HTTPS.
 
 ## Local development
 
@@ -54,7 +96,7 @@ unless `--force`). Type-check the frontend with `npm run typecheck -w frontend`.
    Keep the password in `MONGODB_URI` identical to `MONGO_ROOT_PASSWORD`.
 3. `docker compose build`
 4. `docker compose up -d mongo backend frontend`
-5. `docker compose run --rm backend node src/seed/seed.js`
+5. `docker compose run --rm backend node src/seed/seed.js`, then create the first admin (see *First sign-in*)
 6. `./scripts/init-letsencrypt.sh` (creates a temporary cert, starts nginx, obtains the real certificate).
    The `certbot` service then renews automatically.
 7. `docker compose up -d`; check `https://<domain>/api/health`.

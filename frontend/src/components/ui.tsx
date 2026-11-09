@@ -41,6 +41,8 @@ export function Img({ src, alt = '', className = '', label, priority = false }: 
       {src && !failed ? (
         <img
           src={src}
+          srcSet={/-1600\.webp$/.test(src) ? [480, 960, 1600].map((w) => `${src.replace(/-1600\.webp$/, `-${w}.webp`)} ${w}w`).join(', ') : undefined}
+          sizes="(min-width: 1280px) 1280px, 100vw"
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"

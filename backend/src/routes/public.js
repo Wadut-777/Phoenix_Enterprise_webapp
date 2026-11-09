@@ -29,7 +29,7 @@ router.get('/site', wrap(async (_req, res) => {
 }));
 
 router.get('/pages/:slug', wrap(async (req, res) => {
-  const page = await Page.findOne({ slug: slugParam(req.params.slug), ...liveFilter() }).lean();
+  const page = await Page.findOne({ slug: slugParam(req.params.slug), ...liveFilter() }).select('-draft').lean();
   if (!page) return notFound(res);
   res.json(page);
 }));

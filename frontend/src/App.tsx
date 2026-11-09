@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import { Contact, DynamicPage, Faqs, NotFound } from './pages/core';
@@ -7,9 +8,13 @@ import { IndustriesPage, IndustryDetail } from './pages/industries';
 import { CareersPage, JobDetail } from './pages/careers';
 import { BlogList, BlogPost } from './pages/blog';
 
+// The admin area is a separate chunk so visitors never download it.
+const AdminApp = lazy(() => import('./admin/AdminApp'));
+
 export default function App() {
   return (
     <Routes>
+      <Route path="admin/*" element={<Suspense fallback={<p className="p-10">Loading…</p>}><AdminApp /></Suspense>} />
       <Route element={<Layout />}>
         <Route index element={<DynamicPage slug="home" />} />
         <Route path="services" element={<ServicesPage />} />

@@ -1,9 +1,16 @@
-import { Link, useParams } from 'react-router-dom';
-import { usePage } from '../lib/api';
+import { Suspense, lazy, useEffect } from 'react';
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { ApiError, usePage, type Page } from '../lib/api';
+import { adminApi } from '../lib/adminApi';
+import { useAuth } from '../lib/auth';
+import { setEditTarget } from '../components/AdminPill';
 import { BlockRenderer, FaqList } from '../components/blocks';
 import { Breadcrumbs, ErrorState, Loading, PageHero, SectionHead, useSeo } from '../components/ui';
 import { EnquiryForm } from '../components/EnquiryForm';
 import { useSite } from '../lib/api';
+
+const EditorShell = lazy(() => import('../editor/EditorShell'));
 
 export function NotFound() {
   useSeo({ title: 'Page not found', seo: { noIndex: true } });
@@ -21,8 +28,38 @@ export function NotFound() {
 export function DynamicPage({ slug: fixed }: { slug?: string }) {
   const params = useParams();
   const slug = fixed || params.slug || 'home';
-  const { data, isLoading, error, refetch } = usePage(slug);
+  const [sp] = useSearchParams();
+  const loc = useLocation();
+  const { user, loading: authLoading, can } = useAuth();
+  const wantEdit = sp.get('edit') === '1';
+  const wantDraft = sp.get('draft') === '1';
+  const privileged = !!user && can('content');
+
+  const live = usePage(slug, !wantDraft);
+  const draft = useQuery<Page, ApiError>({
+    queryKey: ['page-draft', slug],
+    queryFn: async () => {
+      const p = await adminApi<any>(`/admin/pages/by-slug/${slug}`);
+      return { ...p, blocks: p.draft?.blocks ?? p.blocks, title: p.draft?.title ?? p.title, seo: p.draft?.seo ?? p.seo };
+    },
+    enabled: wantDraft && privileged,
+    staleTime: 0,
+    gcTime: 0,
+  });
+  const { data, isLoading, error, refetch } = wantDraft && privileged ? draft : live;
+
+  const exists = !!data;
+  useEffect(() => { setEditTarget(exists ? slug : null); return () => setEditTarget(null); }, [slug, exists]);
   useSeo({ seo: data?.seo, title: data?.title });
+
+  if ((wantEdit || wantDraft) && authLoading) return <Loading />;
+  if (wantEdit) {
+    if (!user) return <Navigate to={`/admin/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
+    if (!can('content')) return <ErrorState message="Your role can't edit pages." />;
+    return <Suspense fallback={<Loading label="Opening the editor…" />}><EditorShell slug={slug} /></Suspense>;
+  }
+  if (wantDraft && !user) return <Navigate to={`/admin/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
+
   if (isLoading) return <Loading />;
   if (error?.status === 404) return <NotFound />;
   if (error) return <ErrorState onRetry={refetch} />;
