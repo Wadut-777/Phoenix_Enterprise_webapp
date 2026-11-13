@@ -9,6 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
   const next = sp.get('next');
   const dest = next && next.startsWith('/') && !next.startsWith('//') ? next : '/admin';
 
@@ -29,7 +30,13 @@ export default function Login() {
         <label className="label" htmlFor="li-email">Email</label>
         <input id="li-email" type="email" autoComplete="username" required className="field mb-4" value={email} onChange={(e) => setEmail(e.target.value)} />
         <label className="label" htmlFor="li-pw">Password</label>
-        <input id="li-pw" type="password" autoComplete="current-password" required className="field mb-4" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <div className="relative mb-4">
+          <input id="li-pw" type={show ? 'text' : 'password'} autoComplete="current-password" required className="field pr-16" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <button type="button" onClick={() => setShow((v) => !v)} aria-pressed={show} aria-controls="li-pw"
+            className="absolute inset-y-0 right-0 px-3 text-xs font-semibold uppercase tracking-wider text-concrete hover:text-ember">
+            {show ? 'Hide' : 'Show'}
+          </button>
+        </div>
         {error && <p role="alert" className="mb-4 text-sm text-red-700">{error}</p>}
         <button className="btn-primary w-full disabled:opacity-60" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
       </form>

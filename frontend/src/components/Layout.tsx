@@ -6,11 +6,13 @@ import { AdminPill } from './AdminPill';
 
 function Brand({ settings, light = true }: { settings?: Settings; light?: boolean }) {
   const name = settings?.company?.name || 'Phoenix Enterprise';
-  if (settings?.company?.logo) return <img src={settings.company.logo} alt={name} className="h-9 w-auto" />;
+  const logo = settings?.company?.logo?.replace(/-1600\.webp$/, '-480.webp');
   const [first, ...rest] = name.split(' ');
   return (
     <span className={`flex items-center gap-2.5 font-display text-lg font-extrabold uppercase tracking-[0.14em] ${light ? 'text-paper' : 'text-ink'}`}>
-      <span className="grid h-8 w-8 place-items-center bg-ember text-sm text-white">{first[0]}</span>
+      {logo
+        ? <img src={logo} alt="" className="h-9 w-auto max-w-[3.5rem] object-contain" />
+        : <span className="grid h-8 w-8 place-items-center bg-ember text-sm text-white">{first[0]}</span>}
       <span>{first}<span className="font-medium opacity-70"> {rest.join(' ')}</span></span>
     </span>
   );
